@@ -1,0 +1,7 @@
+# Source code or compiled files #
+**/*.cc
+**/*.mex*
+
+# Matlab data #
+**/*.mat
+**/*.asv

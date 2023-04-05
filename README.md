@@ -1,2 +1,2 @@
 # ABC
-Artificial Bee Colony (ABC) optimization algorithm
+Artificial Bee Colony (ABC) classic optimization algorithm
