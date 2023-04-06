@@ -1,4 +1,4 @@
-function [opt, hive, time] = ABC(dim, f, lb, ub, ...
+function [opt, hive, time] = ERABC(dim, f, lb, ub, ...
                     n_emp, n_onl, maxIter, hive_i, ...
                     cycle, opts)
 % ABC - Artificial Bee Colony (ABC) classic optimization algorithm
@@ -59,7 +59,7 @@ end
 N = n_emp + n_onl;
 ub_sat = ub; ub_sat(isinf(ub)) = 100;
 lb_sat = lb; lb_sat(isinf(lb)) = -100;
-gen = @(N) (ub_sat - lb_sat).*rand(N, dim) + lb_sat;
+gen = @(N) (ub_sat - lb_sat).*logisticEq(4, [N, dim]) + lb_sat;
 
 % Hive intialization
 if nargin < 8 || isempty(hive_i) || (size(hive_i, 2) ~= dim)
@@ -99,7 +99,7 @@ for iter = 1:cycle
         if cost(k) > 0, fit(k) = 1/(1 + cost(k));
         else, fit(k) = 1 + abs(cost(k)); end
     end
-    if sum(fit) < 1e-5, prob = ones(n_emp, 1)/n_emp; else, prob = fit/sum(fit); end
+    if sum(fit) < 1e-5, prob = ones(n_emp, 1)/n_emp; else, prob = (1./fit)/sum(1./fit); end
     dens_prob = cumsum(prob);
     for k = 1:n_onl, indeces(k) = find(dens_prob >= rand, 1); end
 
@@ -107,16 +107,23 @@ for iter = 1:cycle
     tmp_hive = hive;
     for k = randperm(N)
         if k <= n_emp, index = k; else, index = indeces(k - n_emp); end
-        n = index; while n == index, n = randi(n_emp, 1); j = randi(dim, 1); end
+        j = randi(dim, 1);
         
         v = tmp_hive(index, :);
-        v(1, j) = v(1, j) + phi()*(v(1, j) - tmp_hive(n, j));
+        v(1, j) = v(1, j) + phi()*(v(1, j) - hive(end, j))*cost(end);
         
         [feas_v, feas_iv] = hiveFeas(v, lb, ub);
-        [hive(index, :), cost(index), feas(index), feas_i(index, :), check] = bestSol(hive(index, :), ...
+        [hive(index, :), cost(index), feas(index), feas_i(index, :), check1] = bestSol(hive(index, :), ...
+            cost(index), feas(index), feas_i(index, :), v, f(v), feas_v, feas_iv);
+        
+        v = tmp_hive(index, :);
+        v(1, j) = v(1, j) + phi()*(v(1, j) - hive(end, j))*exp(iter/cycle);
+        
+        [feas_v, feas_iv] = hiveFeas(v, lb, ub);
+        [hive(index, :), cost(index), feas(index), feas_i(index, :), check2] = bestSol(hive(index, :), ...
             cost(index), feas(index), feas_i(index, :), v, f(v), feas_v, feas_iv);
 
-        checks(index) = checks(index) | check;
+        checks(index) = checks(index) | check1 | check2;
     end
     n_nup(checks) = 0; n_nup(~checks) = n_nup(~checks) + 1;
     checks = false(n_emp, 1);
@@ -254,3 +261,19 @@ function plotHive(nFig, hive, cost, f, lb_sat, ub_sat)
 
     grid on, grid on; drawnow
 end
+
+function x = logisticEq(mu, x_size, x0)
+    % Generate random vector using logistic equation
+    x = zeros(x_size);
+    if x_size(1)*x_size(2) == 0, return, end
+    if nargin < 3 || isempty(x0), x0 = rand; end
+    while any(x0 == [0, 0.25, 0.5, 0.75, 1]), x0 = rand; end
+
+    x(1) = x0;
+    for k = 2:numel(x)
+        x(k) = mu*x(k-1)*(1 - x(k-1));
+        while any(x(k) == [0, 0.25, 0.5, 0.75, 1]), x(k) = rand; end
+    end
+end
+    
+    
