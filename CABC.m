@@ -49,7 +49,7 @@ if nargin < 5 || isempty(g), g = @(x) 0; end
 if nargin < 6 || isempty(h), h = @(x) 0; end
 if nargin < 7 || isempty(n_emp), n_emp = 100; else, n_emp = n_emp(1); end
 if nargin < 8 || isempty(n_onl), n_onl = 100; else, n_onl = n_onl(1); end
-if nargin < 10 || isempty(maxIter), maxIter = 25; else, maxIter = maxIter(1); end
+if nargin < 9 || isempty(maxIter), maxIter = 25; else, maxIter = maxIter(1); end
 if nargin < 11 || isempty(cycle), cycle = 100; else, cycle = cycle(1); end
 
 if nargin < 12 || isempty(opts)
@@ -183,8 +183,7 @@ function fit = fitness(fit, feas)
         error('Check feasibility vector dimension')
     end
     
-    if any(feas), fit(~feas) = abs(fit(~feas)) + max(fit(feas));
-    else, fit(~feas) = abs(fit(~feas)) + fit(end); end
+    if any(feas), fit(~feas) = fit(~feas) - min(fit(~feas)) + max(fit(feas)); end
     fit(fit >= 0) = 1./(1 + fit(fit >= 0));
     fit(fit < 0) = 1 + abs(fit(fit < 0));
     fit = fit(1:end-1);
@@ -254,7 +253,7 @@ function plotHive(nFig, hive, cost, f, h, lb_sat, ub_sat)
                     else, z(k, n) = f([x(k, n), y(k, n), hive(end, 3:end)]); end
                 end
             end
-            surf(x, y, z)
+            surf(x, y, z), colorbar
             xlim([lb_sat(1), ub_sat(1)]), ylim([lb_sat(2), ub_sat(2)])
             zlim([min(z, [], 'all'), max(z, [], 'all')])
         end
